@@ -1,5 +1,5 @@
 # build-service
-CI Build Service for Jenkin
+CI Build Service for Jenkins
 
 To use:
 
