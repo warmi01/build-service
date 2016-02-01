@@ -45,7 +45,7 @@ router.post('/:name/builds', function(req, res, next) {
 router.delete('/:name', function(req, res, next) {
 
 	  jenkins.job.destroy(req.params.name, function(err) {
-	    if (err) throw err;
+	    if (err) next(err);
 	    //console.log('job:' + req.params.name, data);
 	    //res.setHeader("Content-Type", "application/json;charset=UTF-8");
 	    //res.send(data);
