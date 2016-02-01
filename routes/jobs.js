@@ -1,7 +1,6 @@
 var express = require('express');
 var router = express.Router();
 var querystring = require('querystring');
-var http = require('http');
 var jenkins = require('jenkins')('http://localhost:8080');
 
 // GET list of jobs
