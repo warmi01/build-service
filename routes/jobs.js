@@ -7,8 +7,8 @@ var jenkins = require('jenkins')('http://localhost:8080');
 router.get('/', function(req, res, next) {
 
   jenkins.job.list(function(err, data) {
-    if (err) throw err;
-
+    if (err) next(err);
+    
     console.log('job list', data);
     res.setHeader("Content-Type", "application/json;charset=UTF-8");
     res.send(data);
@@ -21,7 +21,7 @@ router.post('/:name', function(req, res, next) {
 	var xml = "";
 
 	jenkins.job.create(req.params.name, xml, function(err) {
-		  if (err) throw err;
+    	    if (err) next(err);
 	    //console.log('job:' + req.params.name, data);
 	    //res.setHeader("Content-Type", "application/json;charset=UTF-8");
 	    //res.send(data);
@@ -33,7 +33,7 @@ router.post('/:name', function(req, res, next) {
 router.post('/:name/builds', function(req, res, next) {
 
 	jenkins.job.build(req.params.name, function(err) {
-	    if (err) throw err;
+    	    if (err) next(err);
 	    //console.log('job:' + req.params.name, data);
 	    //res.setHeader("Content-Type", "application/json;charset=UTF-8");
 	    //res.send(data);
@@ -57,7 +57,7 @@ router.delete('/:name', function(req, res, next) {
 router.get('/:name', function(req, res, next) {
 
 	  jenkins.job.get(req.params.name, function(err, data) {
-	    if (err) throw err;
+    	    if (err) next(err);
 
 	    console.log('job:' + req.params.name, data);
 	    res.setHeader("Content-Type", "application/json;charset=UTF-8");
@@ -70,7 +70,7 @@ router.get('/:name', function(req, res, next) {
 router.get('/:name/builds/:number', function(req, res, next) {
 
 	  jenkins.build.get(req.params.name, req.params.number, function(err, data) {
-	    if (err) throw err;
+    	    if (err) next(err);
 
 	    console.log('build:' + req.params.name + "/" + req.params.number, data);
 	    res.send(data);
@@ -82,7 +82,7 @@ router.get('/:name/builds/:number', function(req, res, next) {
 router.get('/config/:name', function(req, res, next) {
 
   jenkins.job.config(req.params.name, function(err, data) {
-    if (err) throw err;
+    if (err) next(err);
 
     console.log('xml:' + req.params.name, data);
     res.setHeader('Content-Type', 'application/xml');
