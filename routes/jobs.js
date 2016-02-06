@@ -4,7 +4,8 @@ var querystring = require('querystring');
 var fs = require('fs');
 var path = require('path');
 var parser = require('xml2json');
-var jenkins = require('jenkins')('http://localhost:8080');
+//var jenkins = require('jenkins')('http://localhost:8080');
+var jenkins = require('jenkins')('http://192.168.99.100:8080');
 
 // GET list of jobs
 router.get('/', function(req, res, next) {
@@ -21,25 +22,40 @@ router.get('/', function(req, res, next) {
 
 //POST job (create)
 router.post('/:name', function(req, res, next) {
+	if (req.body.giturl == null || req.body.scriptpath == null) {
+		throw new Error('git url or scriptpath is not defined');
+	}
     var sampleXml = path.join(__dirname, 'config.xml');
-	var data = fs.readFileSync(sampleXml);
 
-	var jsonOutput = parser.toJson(data, {reversible: true, sanitize: false, coerce: true, object: true});
+    try
+    {
+        fs.statSync(sampleXml);
+        var data = fs.readFileSync(sampleXml);
+
+		var jsonOutput = parser.toJson(data, {reversible: true, sanitize: false, coerce: true, object: true});
 	
-	//replace with values from request
-	jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
-    jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
+		//replace with values from request
+		jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
+    	jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
 	
-	var xmlOutput = parser.toXml(jsonOutput);
+		var xmlOutput = parser.toXml(jsonOutput);
 
-	jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
-	    if (err) throw err;
+		jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
+		    if (err) throw err;
 
-	    //console.log('create job data:', data);
-	    res.setHeader("Content-Type", "application/xml");
-	    res.send(data);
-   	});
+		    //console.log('create job data:', data);
+		    res.setHeader("Content-Type", "application/xml");
+		    res.send(data);
+	   	});
+    }
+    catch (e)
+    {
+        console.log(e);
+        throw new Error('template file config.xml is not found');
+    }
+
 });
+
 
 
 //POST job build (run)
