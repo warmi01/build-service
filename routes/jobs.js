@@ -19,7 +19,6 @@ router.get('/', function(req, res, next) {
 
 });
 
-//POST job (create)
 router.post('/:name', function(req, res, next) {
 	if (req.body.giturl == null || req.body.scriptpath == null) {
 		throw new Error('git url or scriptpath is not defined');
@@ -29,32 +28,30 @@ router.post('/:name', function(req, res, next) {
     try
     {
         fs.statSync(sampleXml);
-        var data = fs.readFileSync(sampleXml);
-
-		var jsonOutput = parser.toJson(data, {reversible: true, sanitize: false, coerce: true, object: true});
-	
-		//replace with values from request
-		jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
-    	jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
-	
-		var xmlOutput = parser.toXml(jsonOutput);
-
-		jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
-		    if (err) throw err;
-
-		    //console.log('create job data:', data);
-		    res.setHeader("Content-Type", "application/xml");
-		    res.send(data);
-	   	});
     }
     catch (e)
     {
         console.log(e);
         throw new Error('template file config.xml is not found');
     }
+    var data = fs.readFileSync(sampleXml);
 
+	var jsonOutput = parser.toJson(data, {reversible: true, sanitize: false, coerce: true, object: true});
+
+	//replace with values from request
+	jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
+	jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
+
+	var xmlOutput = parser.toXml(jsonOutput);
+
+	jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
+	    if (err) throw err;
+
+	    //console.log('create job data:', data);
+	    res.setHeader("Content-Type", "application/xml");
+	    res.send(data);
+   	});
 });
-
 
 
 //POST job build (run)
