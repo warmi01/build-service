@@ -4,7 +4,9 @@ var querystring = require('querystring');
 var fs = require('fs');
 var path = require('path');
 var parser = require('xml2json');
-var jenkins = require('jenkins')('http://localhost:8080');
+var jenkinsPort = process.env.JENKINS_SERVICE_PORT || 8080;
+var jenkinsHost = process.env.JENKINS_SERVICE_HOST || '127.0.0.1';
+var jenkins = require('jenkins')('http://' + jenkinsHost + ':' + jenkinsPort);
 
 // GET list of jobs
 router.get('/', function(req, res, next) {
