@@ -19,6 +19,7 @@ router.get('/', function(req, res, next) {
 
 });
 
+//POST job (create)
 router.post('/:name', function(req, res, next) {
 	if (req.body.giturl == null || req.body.scriptpath == null) {
 		throw new Error('git url or scriptpath is not defined');
@@ -48,10 +49,18 @@ router.post('/:name', function(req, res, next) {
 	    if (err) throw err;
 
 	    //console.log('create job data:', data);
-	    res.setHeader("Content-Type", "application/xml");
-	    res.send(data);
+	    //res.setHeader("Content-Type", "application/xml");
+	    //res.send(data);
+	    runJob(req.params.name);
    	});
 });
+
+runJob = function(jobname) {
+	//console.log('in runJob jobname=', jobname);
+	jenkins.job.build(jobname, function(err) {
+  		if (err) throw err;
+	});
+}
 
 
 //POST job build (run)
