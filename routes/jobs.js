@@ -4,9 +4,10 @@ var querystring = require('querystring');
 var fs = require('fs');
 var path = require('path');
 var parser = require('xml2json');
-var host = "http://localhost:8080";
+var jenkinsPort = process.env.JENKINS_SERVICE_PORT || 8080;
+var jenkinsHost = process.env.JENKINS_SERVICE_HOST || '127.0.0.1';
+var host = 'http://' + jenkinsHost + ':' + jenkinsPort;
 var jenkins = require('jenkins')(host);
-//var jenkins = require('jenkins')('http://192.168.99.100:8080');
 
 var CI_NEW 	   = 'CI_New',
 	CI_RUNNING = 'CI_Running',
