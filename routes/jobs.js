@@ -4,7 +4,8 @@ var querystring = require('querystring');
 var fs = require('fs');
 var path = require('path');
 var parser = require('xml2json');
-var jenkins = require('jenkins')('http://localhost:8080');
+//var jenkins = require('jenkins')('http://localhost:8080');
+var jenkins = require('jenkins')('http://192.168.99.100:8080');
 
 // GET list of jobs
 router.get('/', function(req, res, next) {
@@ -48,14 +49,16 @@ router.post('/:name', function(req, res, next) {
 	jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
 	    if (err) throw err;
 
-	    //console.log('create job data:', data);
 	    //res.setHeader("Content-Type", "application/xml");
 	    //res.send(data);
+
+	    //start a job build
 	    runJob(req.params.name);
    	});
 });
 
-runJob = function(jobname) {
+//start a job build (run)
+function runJob (jobname) {
 	//console.log('in runJob jobname=', jobname);
 	jenkins.job.build(jobname, function(err) {
   		if (err) throw err;
