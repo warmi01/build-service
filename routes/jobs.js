@@ -1,6 +1,5 @@
 var express = require('express');
 var router = express.Router();
-var querystring = require('querystring');
 var fs = require('fs');
 var path = require('path');
 var parser = require('xml2json');
@@ -65,8 +64,9 @@ function buildStatus(color) {
 
 //POST job (create)
 router.post('/:name', function(req, res, next) {
+	
 	if (req.body.giturl == null || req.body.scriptpath == null) {
-		throw new Error('git url or scriptpath is not defined');
+		return next(new Error('git url or scriptpath is not defined'));
 	}
     var sampleXml = path.join(__dirname, 'config.xml');
 
@@ -77,8 +77,9 @@ router.post('/:name', function(req, res, next) {
     catch (e)
     {
         console.log(e);
-        throw new Error('template file config.xml is not found');
+        return next(new Error('template file config.xml is not found'));
     }
+    
     var data = fs.readFileSync(sampleXml);
 
 	var jsonOutput = parser.toJson(data, {reversible: true, sanitize: false, coerce: true, object: true});
@@ -89,21 +90,22 @@ router.post('/:name', function(req, res, next) {
 
 	var xmlOutput = parser.toXml(jsonOutput);
 
-	jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
-	    if (err) throw err;
+	var result = jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
+	    if (err) return next(err);
 
-	    //res.send(data);
+	    res.send(data);
 
 	    //start a job build
-	    runJob(req.params.name);
+	    runJob(req.params.name, next);
    	});
 });
 
 //start a job build (run)
-function runJob (jobname) {
+function runJob (jobname, next) {
+	
 	//console.log('in runJob jobname=', jobname);
-	jenkins.job.build(jobname, function(err) {
-  		if (err) throw err;
+	var result = jenkins.job.build(jobname, function(err) {
+	    if (err) next(err);
 	});
 }
 
