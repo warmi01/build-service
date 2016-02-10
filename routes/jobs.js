@@ -87,18 +87,17 @@ router.post('/:name', function(req, res, next) {
 		jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
 			if (err) return next(err);
 	
-		    // start a job build
+		    // run job
 		    runJob(req.params.name, function(err) {
 			    if (err) next(err);    	
+
+			    // return job to caller
+			    getJob(req.params.name, function(err, data) {
+					if (err) return next(err);
+
+				    res.send(data);
+				});
 		    });
-		    
-		    getJob(req.params.name, function(err, data) {
-				if (err) return next(err);
-
-			    console.log('job:' + req.params.name, data);
-			    res.send(data);
-			});
-
 	   	});
     });
  });
@@ -135,7 +134,6 @@ function getJob (jobname, callback) {
 		callback(err, job);
 	});
 }
-
 
 // GET job
 router.get('/:name', function(req, res, next) {
