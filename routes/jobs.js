@@ -68,88 +68,95 @@ router.post('/:name', function(req, res, next) {
 	if (req.body.giturl == null || req.body.scriptpath == null) {
 		return next(new Error('git url or scriptpath is not defined'));
 	}
+	
     var sampleXml = path.join(__dirname, 'config.xml');
 
-    try
-    {
-        fs.statSync(sampleXml);
-    }
-    catch (e)
-    {
-        console.log(e);
-        return next(new Error('template file config.xml is not found'));
-    }
-    
-    var data = fs.readFileSync(sampleXml);
-
-	var jsonOutput = parser.toJson(data, {reversible: true, sanitize: false, coerce: true, object: true});
-
-	//replace with values from request
-	jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
-	jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
-
-	var xmlOutput = parser.toXml(jsonOutput);
-
-	var result = jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
+    fs.stat(sampleXml, function(err, stats) { 
 	    if (err) return next(err);
-
-	    res.send(data);
-
-	    //start a job build
-	    runJob(req.params.name, next);
-   	});
-});
-
-//start a job build (run)
-function runJob (jobname, next) {
+    
+	    var xmlOutput = fs.readFileSync(sampleXml);
+		var jsonOutput = parser.toJson(xmlOutput, {reversible: true, sanitize: false, coerce: true, object: true});
 	
-	//console.log('in runJob jobname=', jobname);
-	var result = jenkins.job.build(jobname, function(err) {
-	    if (err) next(err);
+		//replace with values from request
+		jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
+		jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
+	
+		xmlOutput = parser.toXml(jsonOutput);
+	
+		// create job
+		jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
+			if (err) return next(err);
+	
+		    // start a job build
+		    runJob(req.params.name, function(err) {
+			    if (err) next(err);    	
+		    });
+		    
+		    getJob(req.params.name, function(err, data) {
+				if (err) return next(err);
+
+			    console.log('job:' + req.params.name, data);
+			    res.send(data);
+			});
+
+	   	});
+    });
+ });
+
+// start a job build (run)
+function runJob (jobname, callback) {
+	
+	jenkins.job.build(jobname, function(err) {
+		callback(err);
 	});
 }
 
-
-//POST job build (run)
+// POST job build (run)
 router.post('/:name/builds', function(req, res, next) {
 
-	jenkins.job.build(req.params.name, function(err) {
-    	    if (err) next(err);
-	  });
-
-	});
+    runJob(req.params.name, function(err) {
+	    if (err) next(err);    	
+    });
+});
 
 // DELETE job
 router.delete('/:name', function(req, res, next) {
 
-	  jenkins.job.destroy(req.params.name, function(err) {
-	    if (err) next(err);
-	  });
-
+	jenkins.job.destroy(req.params.name, function(err) {
+		if (err) next(err);
 	});
+});
+
+// get a job
+function getJob (jobname, callback) {
+	
+	jenkins.job.get(jobname, function(err, data) {
+		var job = {job: data, 'jenkins-job': data};
+		callback(err, job);
+	});
+}
+
 
 // GET job
 router.get('/:name', function(req, res, next) {
 
-	  jenkins.job.get(req.params.name, function(err, data) {
-    	    if (err) next(err);
+    getJob(req.params.name, function(err, data) {
+		if (err) return next(err);
 
 	    console.log('job:' + req.params.name, data);
 	    res.send(data);
-	  });
-
 	});
+});
 
 // GET job build
 router.get('/:name/builds/:number', function(req, res, next) {
 
-	  jenkins.build.get(req.params.name, req.params.number, function(err, data) {
-    	    if (err) next(err);
+	jenkins.build.get(req.params.name, req.params.number, function(err, data) {
+		if (err) next(err);
 
 	    console.log('build:' + req.params.name + "/" + req.params.number, data);
 	    res.send(data);
-	  });
-
 	});
+});
 
 module.exports = router;
