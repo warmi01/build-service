@@ -101,7 +101,7 @@ router.post('/:name', function(req, res, next) {
 				// run job
 			    runJob(req.params.name, function(err) {
 				    
-				    var json = {job: {url: null}, build: {url: null}};
+				    var json = {job: {}, build: {}};
 				    
 				    json.job.url = getHost(req)  + '/jobs/' + req.params.name;
 			    	json.build.url = (err ? null : getHost(req)  + '/jobs/' + req.params.name + '/builds/' + data['jenkins-job'].nextBuildNumber);				    	
