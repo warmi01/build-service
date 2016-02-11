@@ -138,6 +138,8 @@ router.delete('/:name', function(req, res, next) {
 
 	jenkins.job.destroy(req.params.name, function(err) {
 		if (err) return next(err);
+		
+		res.send();
 	});
 });
 
