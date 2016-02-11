@@ -149,11 +149,16 @@ function getJob (jobname, callback) {
 // GET job
 router.get('/:name', function(req, res, next) {
 
+    var json = { 'job': {}, builds: [], 'config': {}, 'jenkins-job': {} };
     getJob(req.params.name, function(err, data) {
 		if (err) return next(err);
 
-	    console.log('job:' + req.params.name, data);
-	    res.send(data);
+		json.job.name = data.job.name;
+    	json['builds'] = data.job.builds;
+    	json['jenkins-job'] = data['jenkins-job'];
+	    //json['config'] =
+
+	    res.send(json);
 	});
 });
 
