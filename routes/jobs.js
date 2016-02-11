@@ -22,8 +22,18 @@ var NOTBUILT   	  = 'notbuilt',
 	ABORTED	   	  = 'aborted';
 
 // get protocol+host+port
-function getHost(req) {
+function getHostPath(req) {
 	return req.protocol + '://' + req.get('Host');
+}
+
+// get job root
+function getJobPath(req, name) {
+	return getHostPath(req) + '/jobs/' + name;
+}
+
+// get get build root
+function getBuildPath(req, name) {
+	return getJobPath(req, name) + '/builds/';
 }
 
 // GET list of jobs
@@ -40,7 +50,7 @@ router.get('/', function(req, res, next) {
     data.forEach(function(item) {
     	var job = {};
     	job.name = item.name;
-    	job.url = getHost(req) + '/jobs/' + item.name;
+    	job.url = getJobPath(req, item.name);
     	job['build-status'] = buildStatus(item.color);
     	json.jobs.push(job);
     });
@@ -94,38 +104,45 @@ router.post('/:name', function(req, res, next) {
 		jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
 			if (err) return next(err);
 	
-		    // return job to caller
-		    getJob(req.params.name, function(err, data) {
-				if (err) return next(err);
-
 				// run job
-			    runJob(req.params.name, function(err) {
+			    runJob(req.params.name, function(err, data) {
+					if (err) return next(err);
 				    
 				    var json = {job: {}, build: {}};
 				    
-				    json.job.url = getHost(req)  + '/jobs/' + req.params.name;
-			    	json.build.url = (err ? null : getHost(req)  + '/jobs/' + req.params.name + '/builds/' + data['jenkins-job'].nextBuildNumber);				    	
+				    json.job.url = getJobPath(req, req.params.name);
+			    	json.build.url = getBuildPath(req, req.params.name) + data.nextBuildNumber;				    	
 
 					res.send(json);
 			    });
-			}); 
 	   	});
     });
  });
 
 // start a job build (run)
 function runJob (jobname, callback) {
-	
-	jenkins.job.build(jobname, function(err) {
-		callback(err);
+
+	// get job next build number
+	jenkins.job.get(jobname, function(err, data) {		
+		if (err) return callback(err, data);
+
+		jenkins.job.build(jobname, function(err) {
+			callback(err, data);
+		});
 	});
 }
 
 // POST job build (run)
 router.post('/:name/builds', function(req, res, next) {
 
-    runJob(req.params.name, function(err) {
-	    if (err) next(err);    	
+    runJob(req.params.name, function(err, data) {
+	    if (err) return next(err); 
+
+	    var json = {build: {}};
+
+	    json.build.url = getBuildPath(req, req.params.name) + data.nextBuildNumber;				    	
+
+		res.send(json);
     });
 });
 
@@ -133,29 +150,21 @@ router.post('/:name/builds', function(req, res, next) {
 router.delete('/:name', function(req, res, next) {
 
 	jenkins.job.destroy(req.params.name, function(err) {
-		if (err) next(err);
+		if (err) return next(err);
 	});
 });
-
-// get a job
-function getJob (jobname, callback) {
-	
-	jenkins.job.get(jobname, function(err, data) {
-		var job = {job: data, 'jenkins-job': data};
-		callback(err, job);
-	});
-}
 
 // GET job
 router.get('/:name', function(req, res, next) {
 
     var json = { 'job': {}, builds: [], 'config': {}, 'jenkins-job': {} };
-    getJob(req.params.name, function(err, data) {
+    
+	jenkins.job.get(req.params.name, function(err, data) {		
 		if (err) return next(err);
 
-		json.job.name = data.job.name;
-    	json['builds'] = data.job.builds;
-    	json['jenkins-job'] = data['jenkins-job'];
+		json.job.name = data.name;
+    	json['builds'] = data.builds;
+    	json['jenkins-job'] = data;
 	    //json['config'] =
 
 	    res.send(json);
