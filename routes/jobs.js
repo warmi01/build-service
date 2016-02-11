@@ -32,8 +32,8 @@ function getJobPath(req, name) {
 }
 
 // get get build root
-function getBuildPath(req, name) {
-	return getJobPath(req, name) + '/builds/';
+function getBuildPath(req, name, number) {
+	return getJobPath(req, name) + '/builds/' + number;
 }
 
 // GET list of jobs
@@ -104,17 +104,17 @@ router.post('/:name', function(req, res, next) {
 		jenkins.job.create(req.params.name, xmlOutput, function(err, data) {
 			if (err) return next(err);
 	
-				// run job
-			    runJob(req.params.name, function(err, data) {
-					if (err) return next(err);
-				    
-				    var json = {job: {}, build: {}};
-				    
-				    json.job.url = getJobPath(req, req.params.name);
-			    	json.build.url = getBuildPath(req, req.params.name) + data.nextBuildNumber;				    	
+			// run job
+		    runJob(req.params.name, function(err, data) {
+				if (err) return next(err);
+			    
+			    var json = {job: {}, build: {}};
+			    
+			    json.job.url = getJobPath(req, req.params.name);
+		    	json.build.url = getBuildPath(req, req.params.name, data.nextBuildNumber);				    	
 
-					res.send(json);
-			    });
+				res.send(json);
+		    });
 	   	});
     });
  });
@@ -140,7 +140,7 @@ router.post('/:name/builds', function(req, res, next) {
 
 	    var json = {build: {}};
 
-	    json.build.url = getBuildPath(req, req.params.name) + data.nextBuildNumber;				    	
+	    json.build.url = getBuildPath(req, req.params.name, data.nextBuildNumber);				    	
 
 		res.send(json);
     });
