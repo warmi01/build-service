@@ -9,19 +9,19 @@ var jenkinsHost = process.env.JENKINS_SERVICE_HOST || '127.0.0.1';
 var host = 'http://' + jenkinsHost + ':' + jenkinsPort;
 var jenkins = require('jenkins')(host);
 
-var CI_NEW 	   	= 'CI_New',
-	CI_RUNNING 	= 'CI_Running',
-	CI_ABORTING = 'CI_Aborting',
-	CI_PASSING 	= 'CI_Passing',
-	CI_FAILING 	= 'CI_Failing';
+var colorMap = {
+	notbuilt: 'CI_New',
+	notbuilt_anim: 'CI_Running',
+	aborted: 'CI_Aborting',
+	blue: 'CI_Passing',
+	red: 'CI_Failing'
+};
 
-var NOTBUILT   	  = 'notbuilt',
-	NOTBUILT_ANIM = 'notbuilt_anim',
-	BLUE	   	  = 'blue',
-	RED	   		  = 'red',
-	ABORTED	   	  = 'aborted';
-	SUCCESS       = 'SUCCESS';
-	FAILURE       = 'FAILURE';
+var resultMap = {
+	ABORTED: 'CI_Aborting',
+	SUCCESS: 'CI_Passing',
+	FAILURE: 'CI_Failing'
+};
 
 // get protocol+host+port
 function getHostPath(req) {
@@ -53,7 +53,7 @@ router.get('/', function(req, res, next) {
     	var job = {};
     	job.name = item.name;
     	job.url = getJobPath(req, item.name);
-    	job['build-status'] = buildStatus(item.color);
+    	job['build-status'] = (colorMap[item.color] === undefined ? colorMap.notbuilt : colorMap[item.color]);
     	json.jobs.push(job);
     });
     
@@ -63,25 +63,6 @@ router.get('/', function(req, res, next) {
   });
 
 });
-
-function buildStatus(jenkins_build_status) {
-	switch (jenkins_build_status) {
-	case NOTBUILT:
-		return CI_NEW;
-	case NOTBUILT_ANIM:
-		return CI_RUNNING;
-	case BLUE:
-	case SUCCESS:
-		return CI_PASSING;
-	case RED:
-	case FAILURE:
-		return CI_FAILING;
-	case ABORTED:
-		return CI_ABORTING;
-	default:
-		return CI_NEW;
-	}
-}
 
 // POST job (create)
 router.post('/:name', function(req, res, next) {
@@ -188,7 +169,7 @@ router.get('/:name/builds/:number', function(req, res, next) {
     	//console.log('get build: data.number=' + data.number + "/data.result= " + data.result);
 
         json.number = data.number;
-        json.status = buildStatus(data.result);
+        json.status = (resultMap[data.result] === undefined ? resultMap.SUCCESS : resultMap[data.result]);
         json['jenkins-build'] = data;
         
 	    //console.log('build:' + req.params.name + "/" + req.params.number, data);
