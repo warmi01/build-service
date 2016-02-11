@@ -21,7 +21,8 @@ var resultMap = {
 	ABORTED: 'CI_Aborting',
 	SUCCESS: 'CI_Passing',
 	FAILURE: 'CI_Failing',
-	RUNNING: 'CI_Running' // note: actual result value will be null when running
+	RUNNING: 'CI_Running', // note: actual result value will be null when running
+	null: 'CI_Running'
 };
 
 // get protocol+host+port
