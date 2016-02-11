@@ -163,10 +163,7 @@ router.get('/:name/builds/:number', function(req, res, next) {
 
     //console.log('get build:' + req.params.name + "/" + req.params.number);
 	jenkins.build.get(req.params.name, req.params.number, function(err, data) {
-    	if (err) {
-    	   next(err);
-    	}
-    	//console.log('get build: data.number=' + data.number + "/data.result= " + data.result);
+		if (err) return next(err);
 
         json.number = data.number;
         json.status = (resultMap[data.result] === undefined ? resultMap.SUCCESS : resultMap[data.result]);
