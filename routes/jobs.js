@@ -20,6 +20,8 @@ var NOTBUILT   	  = 'notbuilt',
 	BLUE	   	  = 'blue',
 	RED	   		  = 'red',
 	ABORTED	   	  = 'aborted';
+	SUCCESS       = 'SUCCESS';
+	FAILURE       = 'FAILURE';
 
 // get protocol+host+port
 function getHostPath(req) {
@@ -62,15 +64,17 @@ router.get('/', function(req, res, next) {
 
 });
 
-function buildStatus(color) {
-	switch (color) {
+function buildStatus(jenkins_build_status) {
+	switch (jenkins_build_status) {
 	case NOTBUILT:
 		return CI_NEW;
 	case NOTBUILT_ANIM:
 		return CI_RUNNING;
 	case BLUE:
+	case SUCCESS:
 		return CI_PASSING;
 	case RED:
+	case FAILURE:
 		return CI_FAILING;
 	case ABORTED:
 		return CI_ABORTING;
@@ -174,12 +178,23 @@ router.get('/:name', function(req, res, next) {
 // GET job build
 router.get('/:name/builds/:number', function(req, res, next) {
 
-	jenkins.build.get(req.params.name, req.params.number, function(err, data) {
-		if (err) next(err);
+	var json = { 'number': '', status: '', 'jenkins-build': [] };
 
-	    console.log('build:' + req.params.name + "/" + req.params.number, data);
-	    res.send(data);
+    //console.log('get build:' + req.params.name + "/" + req.params.number);
+	jenkins.build.get(req.params.name, req.params.number, function(err, data) {
+    	if (err) {
+    	   next(err);
+    	}
+    	//console.log('get build: data.number=' + data.number + "/data.result= " + data.result);
+
+        json.number = data.number;
+        json.status = buildStatus(data.result);
+        json['jenkins-build'] = data;
+        
+	    //console.log('build:' + req.params.name + "/" + req.params.number, data);
+	    res.send(json);
 	});
+
 });
 
 module.exports = router;
