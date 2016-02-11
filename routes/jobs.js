@@ -70,7 +70,9 @@ router.get('/', function(req, res, next) {
 router.post('/:name', function(req, res, next) {
 	
 	if (req.body.giturl == null || req.body.scriptpath == null) {
-		return next(new Error('git url or scriptpath is not defined'));
+		var err = new Error('Invalid or missing required parameter');
+		err.status = 400;
+		return next(err);
 	}
 	
     var sampleXml = path.join(__dirname, 'config.xml');
