@@ -20,7 +20,8 @@ var colorMap = {
 var resultMap = {
 	ABORTED: 'CI_Aborting',
 	SUCCESS: 'CI_Passing',
-	FAILURE: 'CI_Failing'
+	FAILURE: 'CI_Failing',
+	RUNNING: 'CI_Running' // note: actual result value will be null when running
 };
 
 // get protocol+host+port
@@ -166,7 +167,7 @@ router.get('/:name/builds/:number', function(req, res, next) {
 		if (err) return next(err);
 
         json.number = data.number;
-        json.status = (resultMap[data.result] === undefined ? resultMap.SUCCESS : resultMap[data.result]);
+        json.status = (resultMap[data.result] === undefined ? resultMap.RUNNING : resultMap[data.result]);
         json['jenkins-build'] = data;
         
 	    //console.log('build:' + req.params.name + "/" + req.params.number, data);
