@@ -2,7 +2,17 @@
   <actions/>
   <description></description>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>CI_EVENT_CALLBACK</name>
+          <description>Build event callback URL</description>
+          <defaultValue>http://platformcentral/buildevent</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@1.8">
     <scm class="hudson.plugins.git.GitSCM" plugin="git@2.3.5">
       <configVersion>2</configVersion>
