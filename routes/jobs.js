@@ -67,9 +67,32 @@ router.get('/', function(req, res, next) {
 });
 
 // POST job (create)
+/*
+  examples of properties and jobparm
+		"properties":{
+		  "hudson.model.ParametersDefinitionProperty":{
+		    "parameterDefinitions":{
+		      "hudson.model.StringParameterDefinition":{
+		         "name":{"$t":"CI_EVENT_CALLBACK"},
+		         "description":{"$t":"Build event callback URL"},
+		         "defaultValue":{"$t":"http://platformcentral/buildevent"}
+		      }
+		    }
+		  }
+		},
+
+		 "jobparms": [
+				{
+					"type": "string",
+					"name": "CI_EVENT_CALLBACK",
+					"description": "Build event callback URL",
+					"value": "https://platformcentral/buildevent123/"
+				}
+         ]
+*/
 router.post('/:name', function(req, res, next) {
 	
-	if (req.body.giturl == null || req.body.scriptpath == null) {
+	if (req.body.giturl == null || req.body.scriptpath == null || req.body.jobparms == null) {
 		var err = new Error('Invalid or missing required parameter');
 		err.status = 400;
 		return next(err);
@@ -82,11 +105,16 @@ router.post('/:name', function(req, res, next) {
     
 	    var xmlOutput = fs.readFileSync(sampleXml);
 		var jsonOutput = parser.toJson(xmlOutput, {reversible: true, sanitize: false, coerce: true, object: true});
+		var hudsonModelParm = "hudson.model.ParametersDefinitionProperty";
+        var hudsonModelStrParm = "hudson.model.StringParameterDefinition";
 	
 		//replace with values from request
 		jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
 		jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
 	
+		jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm].name.$t = req.body.jobparms[0].name;
+		jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm].defaultValue.$t = req.body.jobparms[0].value;
+
 		xmlOutput = parser.toXml(jsonOutput);
 	
 		// create job
@@ -109,13 +137,34 @@ router.post('/:name', function(req, res, next) {
  });
 
 // start a job build (run)
+/*
+example of property from job data
+"property":[
+      {"parameterDefinitions":
+         [{"defaultParameterValue":{"name":"CI_EVENT_CALLBACK","value":"http://platformcentral/buildevent"},
+           "description":"Build event callback URL",
+           "name":"CI_EVENT_CALLBACK",
+           "type":"StringParameterDefinition"}
+         ]
+      }
+  ],
+*/
 function runJob (jobname, callback) {
 
 	// get job next build number
 	jenkins.job.get(jobname, function(err, data) {		
 		if (err) return callback(err, data);
 
-		jenkins.job.build(jobname, function(err) {
+        var parmName = data.property[0].parameterDefinitions[0].defaultParameterValue.name;
+        var parmValue = data.property[0].parameterDefinitions[0].defaultParameterValue.value;
+        
+		var options = {
+			parameters: {
+				parmName: parmValue
+			}
+		};
+
+		jenkins.job.build(jobname, options, function(err) {
 			callback(err, data);
 		});
 	});
