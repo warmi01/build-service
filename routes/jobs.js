@@ -4,9 +4,15 @@ var fs = require('fs');
 var path = require('path');
 var parser = require('xml2json');
 
+var jenkinsServiceRegistryPath = process.env.JENKINS_SR_PATH || '/default/ci/jenkins';
+var serviceRegistryHostname = process.env.SERVICE_REGISTRY_HOSTNAME;
 var jenkinsPort = process.env.JENKINS_SERVICE_PORT || 8080;
 var jenkinsHost = process.env.JENKINS_SERVICE_HOST || '127.0.0.1';
-var host = 'http://' + jenkinsHost + ':' + jenkinsPort;
+// Use the service registry to get to Jenkins, otherwise fallback to
+// communicating directly with it.
+var host = (serviceRegistryHostname ?
+    'http://' + serviceRegistryHostname + jenkinsServiceRegistryPath :
+    'http://' + jenkinsHost + ':' + jenkinsPort);
 var jenkins = require('jenkins')(host);
 
 var colorMap = {
