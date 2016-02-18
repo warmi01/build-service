@@ -91,7 +91,12 @@ router.get('/', function(req, res, next) {
          ]
 */
 router.post('/:name', function(req, res, next) {
-	
+	var hudsonModelParm = "hudson.model.ParametersDefinitionProperty";
+    var hudsonModelStrParm = "hudson.model.StringParameterDefinition";
+    var hudsonModelTextParm = "hudson.model.TextParameterDefinition"
+    var jobparms = req.body.jobparms;
+    var defStatement;
+
 	if (req.body.giturl == null || req.body.scriptpath == null || req.body.jobparms == null) {
 		var err = new Error('Invalid or missing required parameter');
 		err.status = 400;
@@ -105,15 +110,38 @@ router.post('/:name', function(req, res, next) {
     
 	    var xmlOutput = fs.readFileSync(sampleXml);
 		var jsonOutput = parser.toJson(xmlOutput, {reversible: true, sanitize: false, coerce: true, object: true});
-		var hudsonModelParm = "hudson.model.ParametersDefinitionProperty";
-        var hudsonModelStrParm = "hudson.model.StringParameterDefinition";
 	
-		//replace with values from request
+		//replace url and scriptpath with values from request
 		jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
 		jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
 	
-		jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm].name.$t = req.body.jobparms[0].name;
-		jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm].defaultValue.$t = req.body.jobparms[0].value;
+		 if (jobparms.length > 0 && jsonOutput["flow-definition"].properties[hudsonModelParm] == null) {
+        	jsonOutput["flow-definition"].properties[hudsonModelParm] = {"parameterDefinitions" : {}};
+        }
+        //replace jobparms with values from request
+		for (var i = 0; i < jobparms.length; i++) {
+			var defStatement = {"name":{"$t":jobparms[i].name},
+		                        "description":{"$t":jobparms[i].description},
+		                        "defaultValue":{"$t":jobparms[i].value}};
+
+		    if (jobparms[i].type == "string") {
+		    	if (jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm] == null) {
+					jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm] = [defStatement];		
+				}
+				else {
+					jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm].push(defStatement);
+				}			
+		    }
+		    else if (jobparms[i].type == "text") {
+		    	if (jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelTextParm] == null) {
+						jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelTextParm] = [defStatement];
+				}
+				else {
+					jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelTextParm].push(defStatement);
+				}
+		    }
+			
+		}
 
 		xmlOutput = parser.toXml(jsonOutput);
 	
@@ -155,13 +183,28 @@ function runJob (jobname, callback) {
 	jenkins.job.get(jobname, function(err, data) {		
 		if (err) return callback(err, data);
 
-        var parmName = data.property[0].parameterDefinitions[0].defaultParameterValue.name;
-        var parmValue = data.property[0].parameterDefinitions[0].defaultParameterValue.value;
-        
+        var dataproperty = data.property;
+
+		console.log('in runJob dataproperty = ' + JSON.stringify(dataproperty)); 
+		console.log('in runJob dataproperty.length = ' + dataproperty.length); 
+	
+		var pset = {};
+
+		for (var i = 0; i < dataproperty.length; i++) {
+			var pdefinitions = data.property[i].parameterDefinitions;
+
+            if (pdefinitions != null) {
+            	for (var j = 0; j < pdefinitions.length; j++) {
+					var parmName = data.property[i].parameterDefinitions[0].defaultParameterValue.name;
+	        		var parmValue = data.property[i].parameterDefinitions[0].defaultParameterValue.value;
+	        		pset.parmName = parmValue;
+	        	}
+            }
+		}
+
 		var options = {
-			parameters: {
-				parmName: parmValue
-			}
+			parameters : pset
+			
 		};
 
 		jenkins.job.build(jobname, options, function(err) {
