@@ -185,9 +185,6 @@ function runJob (jobname, callback) {
 
         var dataproperty = data.property;
 
-		console.log('in runJob dataproperty = ' + JSON.stringify(dataproperty)); 
-		console.log('in runJob dataproperty.length = ' + dataproperty.length); 
-	
 		var pset = {};
 
 		for (var i = 0; i < dataproperty.length; i++) {
