@@ -240,13 +240,18 @@ router.delete('/:name', function(req, res, next) {
 // GET job
 router.get('/:name', function(req, res, next) {
 
-    var json = { 'job': {}, builds: [], 'config': {}, 'jenkins-job': {} };
+    var builds, json = { 'job': {}, builds: [], 'config': {}, 'jenkins-job': {} };
     
 	jenkins.job.get(req.params.name, function(err, data) {		
 		if (err) return next(err);
 
+		builds = data.builds;
+		for (var i = 0; i < builds.length; i++) {
+			builds[i].url = getBuildPath(req, req.params.name, builds[i].number);
+		}
+
 		json.job.name = data.name;
-    	json['builds'] = data.builds;
+    	json['builds'] = builds;
     	json['jenkins-job'] = data;
 	    //json['config'] =
 
