@@ -31,6 +31,12 @@ var resultMap = {
 	null: 'CI_Running'
 };
 
+var hudsonTypeMap = {
+	'string': 'hudson.model.StringParameterDefinition',
+    'text'  : 'hudson.model.TextParameterDefinition'
+};
+
+
 // get protocol+host+port
 function getHostPath(req) {
 	return req.protocol + '://' + req.get('Host');
@@ -98,10 +104,8 @@ router.get('/', function(req, res, next) {
 */
 router.post('/:name', function(req, res, next) {
 	var hudsonModelParm = "hudson.model.ParametersDefinitionProperty";
-    var hudsonModelStrParm = "hudson.model.StringParameterDefinition";
-    var hudsonModelTextParm = "hudson.model.TextParameterDefinition"
     var jobparms = req.body.jobparms;
-    var defStatement;
+    var defStatement, sampleXml, xmlOutput, jsonOutput, parmArray;
 
 	if (req.body.giturl == null || req.body.scriptpath == null || req.body.jobparms == null) {
 		var err = new Error('Invalid or missing required parameter');
@@ -109,46 +113,37 @@ router.post('/:name', function(req, res, next) {
 		return next(err);
 	}
 	
-    var sampleXml = path.join(__dirname, 'config.xml');
+    sampleXml = path.join(__dirname, 'config.xml');
 
     fs.stat(sampleXml, function(err, stats) { 
 	    if (err) return next(err);
     
-	    var xmlOutput = fs.readFileSync(sampleXml);
-		var jsonOutput = parser.toJson(xmlOutput, {reversible: true, sanitize: false, coerce: true, object: true});
-	
+	    xmlOutput = fs.readFileSync(sampleXml);
+		jsonOutput = parser.toJson(xmlOutput, {reversible: true, sanitize: false, coerce: true, object: true});
+		parmArray = {};
+
 		//replace url and scriptpath with values from request
 		jsonOutput["flow-definition"].definition.scm.userRemoteConfigs["hudson.plugins.git.UserRemoteConfig"].url.$t = req.body.giturl;
 		jsonOutput["flow-definition"].definition.scriptPath.$t = req.body.scriptpath;
 	
-		 if (jobparms.length > 0 && jsonOutput["flow-definition"].properties[hudsonModelParm] == null) {
-        	jsonOutput["flow-definition"].properties[hudsonModelParm] = {"parameterDefinitions" : {}};
+		//replace jobparms with values from request
+        //initialize parmArray
+        for (obj in hudsonTypeMap) {
+        	parmArray[hudsonTypeMap[obj]] = [];
         }
-        //replace jobparms with values from request
+        
 		for (var i = 0; i < jobparms.length; i++) {
 			var defStatement = {"name":{"$t":jobparms[i].name},
 		                        "description":{"$t":jobparms[i].description},
 		                        "defaultValue":{"$t":jobparms[i].value}};
-
-		    if (jobparms[i].type == "string") {
-		    	if (jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm] == null) {
-					jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm] = [defStatement];		
-				}
-				else {
-					jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelStrParm].push(defStatement);
-				}			
-		    }
-		    else if (jobparms[i].type == "text") {
-		    	if (jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelTextParm] == null) {
-						jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelTextParm] = [defStatement];
-				}
-				else {
-					jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonModelTextParm].push(defStatement);
-				}
-		    }
-			
+		    
+		    parmArray[hudsonTypeMap[jobparms[i].type]].push(defStatement);
 		}
-
+		
+		for (obj in hudsonTypeMap) {
+			jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonTypeMap[obj]] = parmArray[hudsonTypeMap[obj]];
+		}
+		
 		xmlOutput = parser.toXml(jsonOutput);
 	
 		// create job
@@ -192,15 +187,17 @@ function runJob (jobname, callback) {
         var dataproperty = data.property;
 
 		var pset = {};
-
+		
 		for (var i = 0; i < dataproperty.length; i++) {
 			var pdefinitions = data.property[i].parameterDefinitions;
 
             if (pdefinitions != null) {
             	for (var j = 0; j < pdefinitions.length; j++) {
-					var parmName = data.property[i].parameterDefinitions[0].defaultParameterValue.name;
-	        		var parmValue = data.property[i].parameterDefinitions[0].defaultParameterValue.value;
-	        		pset.parmName = parmValue;
+					
+	        		var parmName = pdefinitions[j].defaultParameterValue.name;
+	        		var parmValue = pdefinitions[j].defaultParameterValue.value;
+	        		
+	        		pset[parmName] = parmValue;
 	        	}
             }
 		}
