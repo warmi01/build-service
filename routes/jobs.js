@@ -141,7 +141,9 @@ router.post('/:name', function(req, res, next) {
 		}
 		
 		for (obj in hudsonTypeMap) {
-			jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonTypeMap[obj]] = parmArray[hudsonTypeMap[obj]];
+			if (parmArray[hudsonTypeMap[obj]].length > 0) {
+				jsonOutput["flow-definition"].properties[hudsonModelParm].parameterDefinitions[hudsonTypeMap[obj]] = parmArray[hudsonTypeMap[obj]];
+			}
 		}
 		
 		xmlOutput = parser.toXml(jsonOutput);
