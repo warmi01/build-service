@@ -181,15 +181,12 @@ example of property from job data
   ],
 */
 function runJob (jobname, callback) {
-
 	// get job next build number
 	jenkins.job.get(jobname, function(err, data) {		
+		var dataproperty = data.property, pset = {}, options = {};
 		if (err) return callback(err, data);
 
-		if (data.property && data.property.length > 0) {
-			//call jenkins job build with options
-			var dataproperty = data.property, pset = {}, options = {};
-
+		if (dataproperty && dataproperty.length > 0) {
 			for (var i = 0; i < dataproperty.length; i++) {
 				var pdefinitions = data.property[i].parameterDefinitions;
 
@@ -207,18 +204,12 @@ function runJob (jobname, callback) {
 	        options = {
 				parameters : pset
 			};
-	        
-			jenkins.job.build(jobname, options, function(err) {
-				callback(err, data);
-			});
-
+	       
 		}
-		else {
-			//call jenkins job build without options
-			jenkins.job.build(jobname, function(err) {
+		
+		jenkins.job.build(jobname, options, function(err) {
 				callback(err, data);
-			});
-		}
+		});
 		
 	});
 
