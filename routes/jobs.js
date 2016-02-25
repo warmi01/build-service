@@ -186,33 +186,42 @@ function runJob (jobname, callback) {
 	jenkins.job.get(jobname, function(err, data) {		
 		if (err) return callback(err, data);
 
-        var dataproperty = data.property;
+		if (data.property && data.property.length > 0) {
+			//call jenkins job build with options
+			var dataproperty = data.property, pset = {}, options = {};
 
-		var pset = {};
-		
-		for (var i = 0; i < dataproperty.length; i++) {
-			var pdefinitions = data.property[i].parameterDefinitions;
+			for (var i = 0; i < dataproperty.length; i++) {
+				var pdefinitions = data.property[i].parameterDefinitions;
 
-            if (pdefinitions != null) {
-            	for (var j = 0; j < pdefinitions.length; j++) {
-					
-	        		var parmName = pdefinitions[j].defaultParameterValue.name;
-	        		var parmValue = pdefinitions[j].defaultParameterValue.value;
-	        		
-	        		pset[parmName] = parmValue;
-	        	}
-            }
+	            if (pdefinitions != null) {
+	            	for (var j = 0; j < pdefinitions.length; j++) {
+						
+		        		var parmName = pdefinitions[j].defaultParameterValue.name;
+		        		var parmValue = pdefinitions[j].defaultParameterValue.value;
+		        		
+		        		pset[parmName] = parmValue;
+		        	}
+	            }
+			}
+
+	        options = {
+				parameters : pset
+			};
+	        
+			jenkins.job.build(jobname, options, function(err) {
+				callback(err, data);
+			});
+
 		}
-
-		var options = {
-			parameters : pset
-			
-		};
-
-		jenkins.job.build(jobname, options, function(err) {
-			callback(err, data);
-		});
+		else {
+			//call jenkins job build without options
+			jenkins.job.build(jobname, function(err) {
+				callback(err, data);
+			});
+		}
+		
 	});
+
 }
 
 // POST job build (run)
