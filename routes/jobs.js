@@ -3,6 +3,7 @@ var router = express.Router();
 var fs = require('fs');
 var path = require('path');
 var parser = require('xml2json');
+var request = require('request');
 
 var jenkinsServiceRegistryPath = process.env.JENKINS_SR_PATH || '/default/ci/jenkins';
 var serviceRegistryHostname = process.env.SERVICE_REGISTRY_HOSTNAME;
@@ -29,6 +30,17 @@ var resultMap = {
 	FAILURE: 'CI_Failing',
 	RUNNING: 'CI_Running', // note: actual result value will be null when running
 	null: 'CI_Running'
+};
+
+var eventMap = {
+	JOB_STARTED: 'CI_JobStarted',
+	JOB_ENDED: 'CI_JobEnded',
+	BUILD_STARTED: 'CI_BuildStarted',
+	BUILD_ENDED: 'CI_BuildEnded',
+	TEST_STARTED: 'CI_TestStarted',
+	TEST_ENDED: 'CI_TestEnded',
+	PUBLISH_STARTED: 'CI_PublishStarted',
+	PUBLISH_ENDED: 'CI_PublishEnded'
 };
 
 var hudsonTypeMap = {
@@ -261,23 +273,106 @@ router.get('/:name', function(req, res, next) {
 	});
 });
 
-// GET job build
-router.get('/:name/builds/:number', function(req, res, next) {
+function getBuild (jobname, buildnumber, callback) {
 
 	var json = { 'number': '', status: '', 'jenkins-build': [] };
 
-    //console.log('get build:' + req.params.name + "/" + req.params.number);
-	jenkins.build.get(req.params.name, req.params.number, function(err, data) {
-		if (err) return next(err);
+	jenkins.build.get(jobname, buildnumber, function(err, data) {
+		if (err) return callback(err);
 
         json.number = data.number;
         json.status = (resultMap[data.result] === undefined ? resultMap.RUNNING : resultMap[data.result]);
         json['jenkins-build'] = data;
         
-	    //console.log('build:' + req.params.name + "/" + req.params.number, data);
-	    res.send(json);
+		callback(err, json);
+	});
+}
+
+// GET job build
+router.get('/:name/builds/:number', function(req, res, next) {
+
+	getBuild(req.params.name, req.params.number, function(err, data) {
+		if (err) return next(err);
+        
+	    res.send(data);
+	});
+});
+
+// POST job build event
+router.post('/:name/builds/:number/events', function(req, res, next) {
+
+	var json = { 
+		job: {name: null, url: null}, 
+		build: { number: 0, url: null, 'jenkins-build': {}}, 
+		event: {type: null, details: {causes: null, images: null}, status: null}, 
+	};
+
+	if (req.body.event == undefined || req.body.event.type == undefined || req.body.event.callback == undefined) {
+		var err = new Error('Invalid or missing required parameter');
+		err.status = 400;
+		return next(err);
+	}
+	
+	getBuild(req.params.name, req.params.number, function(err, data) {
+		if (err) return next(err);
+		
+		json.job.name = req, req.params.name;
+		json.job.url = getJobPath(req, req.params.name);
+		json.build.number = req, req.params.number;
+		json.build.url = getBuildPath(req, req.params.name, req.params.number);
+
+		json.event.type = eventMap[req.body.event.type];
+		
+		switch (json.event.type) {
+			case eventMap.JOB_STARTED:
+				json.event.details.causes = data['jenkins-build'].actions[0].causes;
+				json.event.details.status = resultMap.RUNNING;
+				break;
+			case eventMap.JOB_ENDED:
+				json.event.details.status = resultMap[req.body.event.result];
+				break;
+			case eventMap.BUILD_STARTED:
+				json.event.details.status = resultMap.RUNNING;
+				break;
+			case eventMap.BUILD_ENDED:
+				json.event.details.status = resultMap[req.body.event.result];
+				break;
+			case eventMap.TEST_STARTED:
+				json.event.details.status = resultMap.RUNNING;
+				break;
+			case eventMap.TEST_ENDED:
+				json.event.details.status = resultMap[req.body.event.result];
+				break;
+			case eventMap.PUBLISH_STARTED:
+				json.event.details.status = resultMap.RUNNING;
+				break;
+			case eventMap.PUBLISH_ENDED:
+				json.event.details.status = resultMap[req.body.event.result];
+				break;
+			default:
+				var err = new Error('Invalid or missing required parameter');
+				err.status = 400;
+				return next(err);
+		}
+        		 		 
+		// Configure the request
+		var options = {
+		    //url: req.body.event.callback,
+		    url: 'http://localhost:3000/jobs/test/builds/45/events',
+		    method: 'POST',
+		    json: true,
+		    body: json
+		}
+		 
+		// Start the request
+		request(options, function (err, response, body) {
+			if (err) return next(err);
+			
+		    res.status(response.statusCode).send(body);
+	    })
 	});
 
-});
+ });
+
 
 module.exports = router;
