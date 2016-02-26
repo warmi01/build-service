@@ -170,7 +170,9 @@ router.post('/:name', function(req, res, next) {
 			    
 			    var json = {job: {}, build: {}};
 			    
+			    json.job.name = req.params.name;
 			    json.job.url = getJobPath(req, req.params.name);
+		    	json.build.number = data.nextBuildNumber;				    	
 		    	json.build.url = getBuildPath(req, req.params.name, data.nextBuildNumber);				    	
 
 				res.send(json);
@@ -193,38 +195,34 @@ example of property from job data
   ],
 */
 function runJob (jobname, callback) {
+	
 	// get job next build number
 	jenkins.job.get(jobname, function(err, data) {		
 		var dataproperty = data.property, pset = {}, options = {};
 		if (err) return callback(err, data);
-
+		
 		if (dataproperty && dataproperty.length > 0) {
 			for (var i = 0; i < dataproperty.length; i++) {
 				var pdefinitions = data.property[i].parameterDefinitions;
-
-	            if (pdefinitions != null) {
-	            	for (var j = 0; j < pdefinitions.length; j++) {
+		
+		        if (pdefinitions != null) {
+		        	for (var j = 0; j < pdefinitions.length; j++) {
 						
 		        		var parmName = pdefinitions[j].defaultParameterValue.name;
 		        		var parmValue = pdefinitions[j].defaultParameterValue.value;
 		        		
 		        		pset[parmName] = parmValue;
 		        	}
-	            }
+		        }
 			}
-
-	        options = {
-				parameters : pset
-			};
-	       
+		
+		    options.parameters = pset;
 		}
 		
 		jenkins.job.build(jobname, options, function(err) {
 				callback(err, data);
 		});
-		
 	});
-
 }
 
 // POST job build (run)
