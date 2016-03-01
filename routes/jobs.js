@@ -314,9 +314,9 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 	getBuild(req.params.name, req.params.number, function(err, data) {
 		if (err) return next(err);
 		
-		json.job.name = req, req.params.name;
+		json.job.name = req.params.name;
 		json.job.url = getJobPath(req, req.params.name);
-		json.build.number = req, req.params.number;
+		json.build.number = req.params.number;
 		json.build.url = getBuildPath(req, req.params.name, req.params.number);
 
 		json.event.type = eventMap[req.body.event.type];
