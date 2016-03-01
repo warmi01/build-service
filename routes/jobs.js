@@ -355,8 +355,8 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
         		 		 
 		// Configure the request
 		var options = {
-		    //url: req.body.event.callback,
-		    url: 'http://localhost:3000/jobs/test/builds/45/events',
+		    url: req.body.event.callback,
+		    //url: 'http://localhost:3000/jobs/test/builds/45/events',
 		    method: 'POST',
 		    json: true,
 		    body: json
