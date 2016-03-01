@@ -369,7 +369,6 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 		    res.status(response.statusCode).send(body);
 	    })
 	});
-
  });
 
 
