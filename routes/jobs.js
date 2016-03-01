@@ -372,4 +372,15 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
  });
 
 
+// cancel job
+router.delete('/:name/builds/:number', function(req, res, next) {
+
+	jenkins.build.stop(req.params.name, req.params.number, function(err) {
+		if (err) return next(err);
+		
+		res.send();
+	});
+});
+
+
 module.exports = router;
