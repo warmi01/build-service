@@ -301,7 +301,7 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 
 	var json = { 
 		job: {name: null, url: null}, 
-		build: { number: 0, url: null, 'jenkins-build': {}}, 
+		build: { number: 0, url: null}, 
 		event: {type: null, details: {causes: null, images: null}, status: null}, 
 	};
 
