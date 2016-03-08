@@ -324,28 +324,29 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 		switch (json.event.type) {
 			case eventMap.JOB_STARTED:
 				json.event.details.causes = data['jenkins-build'].actions[0].causes;
-				json.event.details.status = resultMap.RUNNING;
+				json.event.status = resultMap.RUNNING;
 				break;
 			case eventMap.JOB_ENDED:
-				json.event.details.status = resultMap[req.body.event.result];
+				json.event.status = resultMap[req.body.event.result];
 				break;
 			case eventMap.BUILD_STARTED:
-				json.event.details.status = resultMap.RUNNING;
+				json.event.status = resultMap.RUNNING;
 				break;
 			case eventMap.BUILD_ENDED:
-				json.event.details.status = resultMap[req.body.event.result];
+				json.event.status = resultMap[req.body.event.result];
 				break;
 			case eventMap.TEST_STARTED:
-				json.event.details.status = resultMap.RUNNING;
+				json.event.status = resultMap.RUNNING;
 				break;
 			case eventMap.TEST_ENDED:
-				json.event.details.status = resultMap[req.body.event.result];
+				json.event.status = resultMap[req.body.event.result];
 				break;
 			case eventMap.PUBLISH_STARTED:
-				json.event.details.status = resultMap.RUNNING;
+				json.event.status = resultMap.RUNNING;
 				break;
 			case eventMap.PUBLISH_ENDED:
-				json.event.details.status = resultMap[req.body.event.result];
+                json.event.details = req.body.event.details;
+				json.event.status = resultMap[req.body.event.result];
 				break;
 			default:
 				var err = new Error('Invalid or missing required parameter');
