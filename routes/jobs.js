@@ -286,11 +286,33 @@ function getBuild (jobname, buildnumber, callback) {
 	});
 }
 
+// Generate JSON object with image registry details array
+function generateImageDetails(jobName, buildNumber) {
+    
+    var imageRegistry = process.env.CI_IMAGE_REGISTRY || 'ose3vdr1:5000',
+        appImage,
+        appTestImage;
+        
+    appImage = imageRegistry + '/' + jobName + ':' + buildNumber;
+    appTestImage = imageRegistry + '/' + jobName + '-tests:' + buildNumber;
+    
+    return [ appImage, appTestImage ];
+}
+
 // GET job build
 router.get('/:name/builds/:number', function(req, res, next) {
 
 	getBuild(req.params.name, req.params.number, function(err, data) {
 		if (err) return next(err);
+        
+        // When build status is successful, send image registry details
+        // array.
+        if (data.status === resultMap['SUCCESS']) {
+            
+            data.details = {
+                images: generateImageDetails(req.params.name, req.params.number)
+            }
+        }
         
 	    res.send(data);
 	});
@@ -345,7 +367,12 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 				json.event.status = resultMap.RUNNING;
 				break;
 			case eventMap.PUBLISH_ENDED:
-                json.event.details = req.body.event.details;
+            
+                // Generate image registry details when successful
+                if (req.body.event.result === 'SUCCESS') {
+                    json.event.details.images = generateImageDetails(
+                        json.job.name, json.build.number);                    
+                }
 				json.event.status = resultMap[req.body.event.result];
 				break;
 			default:
@@ -383,5 +410,14 @@ router.delete('/:name/builds/:number', function(req, res, next) {
 	});
 });
 
+if (process.env.NODE_ENV === 'development') {
+    
+    // Used to simulate callback event handler
+    router.post('/platformcentral/events', function(req, res, next) {
+        console.log('Simulated callback event received: ' + JSON.stringify(req.body, null, 4));
+        
+        res.send();
+    });
+}
 
 module.exports = router;
