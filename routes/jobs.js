@@ -361,6 +361,7 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 				json.event.details.causes = getJenkinsBuildCauses(data);
 				json.event.status = resultMap.RUNNING;
 				break;
+			// This is the only ENDED event we're sending
 			case eventMap.JOB_ENDED:
 				json.event.status = resultMap[req.body.event.result];
 				break;
@@ -368,23 +369,35 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 				json.event.status = resultMap.RUNNING;
 				break;
 			case eventMap.BUILD_ENDED:
+				/* Ignore ENDED event
 				json.event.status = resultMap[req.body.event.result];
 				break;
+				*/
+                res.send();
+                return;
 			case eventMap.TEST_STARTED:
 				json.event.status = resultMap.RUNNING;
 				break;
 			case eventMap.TEST_ENDED:
+				/* Ignore ENDED event
 				json.event.status = resultMap[req.body.event.result];
 				break;
+				*/
+				res.send();
+				return;
 			case eventMap.PUBLISH_STARTED:
-                // Send image registry details
-                json.event.details.images = generateImageDetails(
-                    json.job.name, json.build.number);                    
+				// Send image registry details
+				json.event.details.images = generateImageDetails(
+					json.job.name, json.build.number);                    
 				json.event.status = resultMap.RUNNING;
 				break;
-			case eventMap.PUBLISH_ENDED:            
+			case eventMap.PUBLISH_ENDED:
+				/* Ignore ENDED event
 				json.event.status = resultMap[req.body.event.result];
 				break;
+				*/
+				res.send();
+				return;                
 			default:
 				var err = new Error('Invalid or missing required parameter');
 				err.status = 400;
