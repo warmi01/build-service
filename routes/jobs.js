@@ -299,6 +299,19 @@ function generateImageDetails(jobName, buildNumber) {
     return [ appImage, appTestImage ];
 }
 
+function getJenkinsBuildCauses(jenkinsData) {
+    
+    var actions = jenkinsData['jenkins-build'].actions,
+        actionsSize = actions.length,
+        index;
+        
+    for (index = 0; index < actionsSize; ++index) {
+        if (actions[index].causes) {
+            return actions[index].causes;
+        }    
+    }
+}
+
 // GET job build
 router.get('/:name/builds/:number', function(req, res, next) {
 
@@ -345,7 +358,7 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 		
 		switch (json.event.type) {
 			case eventMap.JOB_STARTED:
-				json.event.details.causes = data['jenkins-build'].actions[0].causes;
+				json.event.details.causes = getJenkinsBuildCauses(data);
 				json.event.status = resultMap.RUNNING;
 				break;
 			case eventMap.JOB_ENDED:
