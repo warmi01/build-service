@@ -377,15 +377,12 @@ router.post('/:name/builds/:number/events', function(req, res, next) {
 				json.event.status = resultMap[req.body.event.result];
 				break;
 			case eventMap.PUBLISH_STARTED:
+                // Send image registry details
+                json.event.details.images = generateImageDetails(
+                    json.job.name, json.build.number);                    
 				json.event.status = resultMap.RUNNING;
 				break;
-			case eventMap.PUBLISH_ENDED:
-            
-                // Generate image registry details when successful
-                if (req.body.event.result === 'SUCCESS') {
-                    json.event.details.images = generateImageDetails(
-                        json.job.name, json.build.number);                    
-                }
+			case eventMap.PUBLISH_ENDED:            
 				json.event.status = resultMap[req.body.event.result];
 				break;
 			default:
