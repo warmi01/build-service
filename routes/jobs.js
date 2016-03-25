@@ -13,7 +13,7 @@ var jenkinsHost = process.env.JENKINS_SERVICE_HOST || '127.0.0.1';
 // communicating directly with it.
 var host = (serviceRegistryHostname ?
     'http://' + serviceRegistryHostname + jenkinsServiceRegistryPath :
-    'http://' + jenkinsHost + ':' + jenkinsPort);
+    'http://' + jenkinsHost + ':' + jenkinsPort + jenkinsServiceRegistryPath);
 var jenkins = require('jenkins')(host);
 
 var colorMap = {
@@ -49,14 +49,20 @@ var hudsonTypeMap = {
 };
 
 
+/*
 // get protocol+host+port
 function getHostPath(req) {
 	return req.protocol + '://' + req.get('Host');
 }
+*/
+
+function getBasePath(req) {
+    return process.env.BUILD_SERVICE_SR_PATH || '/default/ci/buildservice';
+}
 
 // get job root
 function getJobPath(req, name) {
-	return getHostPath(req) + '/jobs/' + name;
+	return getBasePath(req) + '/jobs/' + name;
 }
 
 // get get build root
